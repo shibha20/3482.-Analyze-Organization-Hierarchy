@@ -1,0 +1,38 @@
+WITH leademployee AS (
+    SELECT employee_id, manager_id, 1 AS level
+    FROM employees
+    WHERE manager_id IS NULL
+    UNION ALL
+    SELECT e.employee_id, e.manager_id, l.level + 1
+    FROM employees e
+    JOIN leademployee l ON e.manager_id = l.employee_id
+), subordinates as (
+    SELECT
+    e.employee_id AS manager_id,
+    r.employee_id AS subordinate_id,
+    r.salary AS subordinate_salary
+    FROM Employees e
+    JOIN Employees r ON r.manager_id = e.employee_id
+    UNION ALL
+    SELECT   s.manager_id, e.employee_id as subordinate_id,
+    e.salary as subordinate_salary
+    from subordinates s join 
+    employees e on e.manager_id = s.subordinate_id
+), totalreportandsalary as(
+    select manager_id as employee_id,count(subordinate_id) as team_size,
+    sum(subordinate_salary) as budget
+    from subordinates
+    group by manager_id
+)
+
+select l.employee_id,e.employee_name,level,coalesce(r.team_size,0) as team_size,
+coalesce(r.budget,0)+e.salary as budget
+ from leademployee l 
+left join employees e on 
+l.employee_id = e.employee_id
+left join totalreportandsalary r on 
+l.employee_id = r.employee_id
+order by 3, 5 desc, 2
+
+
+
